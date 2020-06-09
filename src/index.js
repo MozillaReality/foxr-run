@@ -220,12 +220,6 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
   }
   foxr.anims.idle.setEffectiveWeight(1);
 
-/*
-  mixer.addEventListener('finished', e => {
-    console.log('end jump animation');
-    foxr.playAnim('idle');
-  });
-*/
   foxr.anims.jump.setLoop(THREE.LoopOnce);
 
   foxr.mixer = mixer;
@@ -252,7 +246,7 @@ function reset() {
   foxr.speed.set(0, 0);
   foxr.jump = 0;
   foxr.onAir = true;
-  foxr.object3D.position.set(0, 0.156169, 0);
+  foxr.object3D.position.set(0, 0.5, 0);
 }
 
 function update(time, dt) {
@@ -297,6 +291,11 @@ function update(time, dt) {
   foxr.object3D.position.y += foxr.jump;
   foxr.object3D.position.z += foxr.speed.y;
 
+
+  if (foxr.object3D.position.y < -1){
+    reset();
+    return;
+  }
 
   // collision with floor
   foxr.onAir = true;
