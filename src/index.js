@@ -14,7 +14,7 @@ environmentMap.flipY = false;
 */
 var textures = {};
 const textureURLs = [
-  'foxr_diff.png', 'foxr_emissive.png', 'foxr_opacity.png'
+  'foxr_diff.png', 'foxr_emissive.png', 'foxr_opacity.png', 'tiles.jpg'
 ];
 for (let i = 0; i < textureURLs.length; i++) {
   let tex = new THREE.TextureLoader().load(`assets/${textureURLs[i]}`);
@@ -27,8 +27,8 @@ for (let i = 0; i < textureURLs.length; i++) {
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0.6, 1.1);
-camera.lookAt(0,0.1,0);
+camera.position.set(0, 1.6, 1.1);
+camera.lookAt(0, 1.7, 0);
 
 var renderer = new THREE.WebGLRenderer();
 renderer.shadowMap.enabled = true;
@@ -38,21 +38,7 @@ renderer.setClearColor(0x88aacc)
 document.body.appendChild(renderer.domElement);
 
 
-const DEBUG = false;
-var debug = document.createElement('div');
-debug.className = 'debug';
-document.body.appendChild(debug);
-function debugStr(str) {
-  if (!DEBUG) { return; }
-  if (str===null) {
-    debug.innerHTML = '';
-    return;
-  }
-  debug.innerHTML += str + '<br>';
-}
-
 // window resize handler
-
 window.addEventListener('resize', onResize);
 function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -109,10 +95,10 @@ function onDesktopInputEvent(ev) {
 
 // scene
 
-var light = new THREE.HemisphereLight(0x6688ff, 0x227722, 1);
+var light = new THREE.HemisphereLight(0xffffff, 0x666666, 0.4);
 scene.add( light );
-var light = new THREE.DirectionalLight(0xaaaaaa,1);
-light.position.set(0.2, 1.7, 0.7);
+var light = new THREE.DirectionalLight(0xaaaaaa, 1.4);
+light.position.set(0.2, 2.7, 0.7);
 light.castShadow = true;
 light.shadow.camera.top = 10;
 light.shadow.camera.bottom = -10;
@@ -175,6 +161,15 @@ foxr.playAnim = (anim) => {
 
 // load and setup scene
 
+new GLTFLoader().load('assets/set.glb', gltf => {
+  const cloudsMaterial = gltf.scene.getObjectByName("clouds").material;
+  cloudsMaterial.transparent = true;
+  cloudsMaterial.fog = false;
+  const skyMaterial = gltf.scene.getObjectByName("sky").material;
+  skyMaterial.fog = false;
+  scene.add(gltf.scene);
+});
+
 new GLTFLoader().load('assets/foxr.glb', gltf => {
   var foxrMesh = gltf.scene.getObjectByName('foxr');
   foxrMesh.material = new THREE.MeshLambertMaterial({
@@ -202,6 +197,7 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
 
   foxr.object3D = gltf.scene.getObjectByName('Armature');
   scene.add(gltf.scene);
+  foxr.object3D.position.z = -0.7;
 
   // animations
 
@@ -228,10 +224,17 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
 
   // floor
 
-  tiles = gltf.scene.getObjectByName('tiles').children;
+  const tileMaterial = new THREE.MeshLambertMaterial({
+    map: textures['tiles.jpg']
+  });
+  tiles = gltf.scene.getObjectByName('tiles2').children;
   for (var i = 0; i < tiles.length; i++) {
-    //dtiles[i].castShadow = true;
+    //tiles[i].castShadow = true;
     tiles[i].receiveShadow = true;
+    tiles[i].position.y += 1;
+    // move bb to the position of the tile
+    tiles[i].geometry.boundingBox.translate(tiles[i].position);
+    tiles[i].material = tileMaterial
   }
 
   clock.start();
@@ -246,7 +249,7 @@ function reset() {
   foxr.speed.set(0, 0);
   foxr.jump = 0;
   foxr.onAir = true;
-  foxr.object3D.position.set(0, 0.5, 0);
+  foxr.object3D.position.set(0, 1.4, -0.7);
 }
 
 function update(time, dt) {
@@ -263,7 +266,7 @@ function update(time, dt) {
   var speed = foxr.speed.length();
 
   if (foxr.onAir){
-    foxr.playAnim('jump');
+    if (Math.abs(foxr.jump) > 0.01) foxr.playAnim('jump');
   }
   else if (speed > 0.005){
     foxr.playAnim('run');
@@ -277,10 +280,6 @@ function update(time, dt) {
     foxr.speed.normalize().multiplyScalar(foxr.MAX_SPEED);
   }
 
-
-  debugStr(`hola ${foxr.speed.x}, ${foxr.jump}, ${foxr.speed.y}`);
-
-
   foxr.speed.x *= foxr.FRICTION;
   foxr.speed.y *= foxr.FRICTION;
 
@@ -292,7 +291,7 @@ function update(time, dt) {
   foxr.object3D.position.z += foxr.speed.y;
 
 
-  if (foxr.object3D.position.y < -1){
+  if (foxr.object3D.position.y < 0.8){
     reset();
     return;
   }
@@ -307,7 +306,7 @@ function update(time, dt) {
 
   foxr.bellyPoint.set(
     foxr.object3D.position.x + foxr.speed.x * 2,
-    foxr.object3D.position.y,
+    foxr.object3D.position.y + 0.02,
     foxr.object3D.position.z + foxr.speed.y * 2
     );
 
@@ -337,13 +336,13 @@ function update(time, dt) {
 
   camera.position.set(
     foxr.object3D.position.x,
-    foxr.object3D.position.y * 0.5 + 0.5,
-    foxr.object3D.position.z + 1.2,
+    foxr.object3D.position.y * 0.7 + 1.2,
+    foxr.object3D.position.z + 1,
     );
 
   camera.lookAt(
     foxr.object3D.position.x,
-    foxr.object3D.position.y * 0.5,
+    foxr.object3D.position.y,
     foxr.object3D.position.z
     );
 
@@ -352,11 +351,9 @@ function update(time, dt) {
 // main loop
 var clock = new THREE.Clock();
 function animate(time) {
-  debugStr(null);
   requestAnimationFrame(animate);
   var dt = clock.getDelta();
 
-  // update foxr
   update(time, dt);
 
   foxr.mixer.update(dt);
