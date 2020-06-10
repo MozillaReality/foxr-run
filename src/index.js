@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import {GLTFLoader} from "../node_modules/three/examples/jsm/loaders/GLTFLoader.js";
+import {VRButton} from '../node_modules/three/examples/jsm/webxr/VRButton.js';
+import { XRControllerModelFactory } from '../node_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
+import {Constants as MotionControllerConstants} from '../node_modules/three/examples/jsm/libs/motion-controllers.module.js';
 
+const SCENE_SCALE = 0.7;
 
 // textures
 
@@ -27,23 +31,27 @@ for (let i = 0; i < textureURLs.length; i++) {
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 1.6, 1.1);
+camera.position.set(0, 1.2, 1.1);
 camera.lookAt(0, 1.7, 0);
 
-var renderer = new THREE.WebGLRenderer();
+var renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.gammaFactor = 2.2;
+renderer.setPixelRatio( window.devicePixelRatio );
 renderer.shadowMap.enabled = true;
 renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.xr.enabled = true;
 renderer.setClearColor(0x88aacc)
 
 document.body.appendChild(renderer.domElement);
+document.body.appendChild(VRButton.createButton(renderer));
 
 
 // window resize handler
 window.addEventListener('resize', onResize);
 function onResize() {
-  renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 };
 onResize();
 
@@ -52,18 +60,18 @@ var john = new THREE.Mesh(new THREE.SphereBufferGeometry(0.01));
 //scene.add(john);
 
 // controls
-
+var controllers = { left: null, right: null };
 var controls = {up: false, down: false, left: false, right: false, jump: false};
 
 document.addEventListener('keydown', onDesktopInputEvent);
 document.addEventListener('keyup', onDesktopInputEvent);
-document.addEventListener('mousedown', onDesktopInputEvent);
-document.addEventListener('mouseup', onDesktopInputEvent);
+renderer.domElement.addEventListener('mousedown', onDesktopInputEvent);
+renderer.domElement.addEventListener('mouseup', onDesktopInputEvent);
 
 function onDesktopInputEvent(ev) {
   if (ev.type === 'mouseup' || ev.type === 'mousedown') {
     controls.jump = ev.type === 'mousedown';
-    return
+    return;
   }
   const pressed = ev.type === 'keydown';
   switch(ev.keyCode){
@@ -91,6 +99,39 @@ function onDesktopInputEvent(ev) {
       reset();
       break;
   }
+}
+
+
+function processControllers() {
+  const left = controllers.left.children[0].motionController;
+  const right = controllers.right.children[0].motionController;
+  if(!left || !right) { return; }
+
+  const jump =
+    left.components['xr-standard-trigger'].values.state === MotionControllerConstants.ComponentState.PRESSED ||
+    right.components['xr-standard-trigger'].values.state === MotionControllerConstants.ComponentState.PRESSED;
+
+  const axisXleft = left.components["xr-standard-thumbstick"].values.xAxis;
+  const axisYleft = left.components["xr-standard-thumbstick"].values.yAxis;
+  const axisXright = right.components["xr-standard-thumbstick"].values.xAxis;
+  const axisYright = right.components["xr-standard-thumbstick"].values.yAxis;
+
+  let axisX, axisY;
+
+  // currently using left thumbstick
+  if (axisXleft || axisYleft) {
+    axisX = axisXleft;
+    axisY = axisYleft;
+  } else {
+    axisX = axisXright;
+    axisY = axisYright;
+  }
+
+  controls.jump = jump;
+  controls.left = axisX < - 0.5;
+  controls.right = axisX > 0.5;
+  controls.down = axisY > 0.5;
+  controls.up = axisY < - 0.5;
 }
 
 // scene
@@ -167,6 +208,7 @@ new GLTFLoader().load('assets/set.glb', gltf => {
   cloudsMaterial.fog = false;
   const skyMaterial = gltf.scene.getObjectByName("sky").material;
   skyMaterial.fog = false;
+  gltf.scene.scale.set(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
   scene.add(gltf.scene);
 });
 
@@ -196,6 +238,7 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
 
 
   foxr.object3D = gltf.scene.getObjectByName('Armature');
+  gltf.scene.scale.set(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
   scene.add(gltf.scene);
   foxr.object3D.position.z = -0.7;
 
@@ -237,9 +280,27 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
     tiles[i].material = tileMaterial
   }
 
+  // controllers
+  const controllerModelFactory = new XRControllerModelFactory();
+
+  const controllerGrip1 = renderer.xr.getControllerGrip(0);
+  controllerGrip1.addEventListener('connected', (event) => {
+    controllers[event.data.handedness] = controllerGrip1;
+  });
+  controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+
+  const controllerGrip2 = renderer.xr.getControllerGrip(1);
+  controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+  controllerGrip2.addEventListener('connected', (event) => {
+    controllers[event.data.handedness] = controllerGrip2;
+  });
+  scene.add(controllerGrip1);
+  scene.add(controllerGrip2);
+
   clock.start();
-  animate();
+  renderer.setAnimationLoop(animate);
 });
+
 
 
 const LOOK_AT_MUL = new THREE.Vector2(500, 500);
@@ -253,7 +314,7 @@ function reset() {
 }
 
 function update(time, dt) {
-  const acceleration = foxr.ACCELERATION * (foxr.onAir ? 0.8 : 1);
+  const acceleration = foxr.ACCELERATION * (foxr.onAir ? 0.6 : 1);
   if (controls.left) { foxr.speed.x -= acceleration * dt; }
   if (controls.right){ foxr.speed.x += acceleration * dt; }
   if (controls.up)   { foxr.speed.y -= acceleration * dt; }
@@ -335,15 +396,15 @@ function update(time, dt) {
   if (foxr.speed.length() < 0.0001) { foxr.speed.set(0, 0); }
 
   camera.position.set(
-    foxr.object3D.position.x,
-    foxr.object3D.position.y * 0.7 + 1.2,
-    foxr.object3D.position.z + 1,
+    foxr.object3D.position.x * SCENE_SCALE,
+    foxr.object3D.position.y * SCENE_SCALE * 0.7 + 0.6,
+    foxr.object3D.position.z * SCENE_SCALE + 0.7,
     );
 
   camera.lookAt(
-    foxr.object3D.position.x,
-    foxr.object3D.position.y,
-    foxr.object3D.position.z
+    foxr.object3D.position.x * SCENE_SCALE,
+    foxr.object3D.position.y * SCENE_SCALE,
+    foxr.object3D.position.z * SCENE_SCALE
     );
 
 }
@@ -351,11 +412,13 @@ function update(time, dt) {
 // main loop
 var clock = new THREE.Clock();
 function animate(time) {
-  requestAnimationFrame(animate);
   var dt = clock.getDelta();
 
-  update(time, dt);
+  if (renderer.xr.isPresenting){
+    processControllers();
+  }
 
+  update(time, dt);
   foxr.mixer.update(dt);
 
   renderer.render(scene, camera);
