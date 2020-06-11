@@ -70,7 +70,7 @@ var john = new THREE.Mesh(new THREE.SphereBufferGeometry(0.01));
 
 // controls
 var controllers = { left: null, right: null };
-var controls = {up: false, down: false, left: false, right: false, jump: false};
+var controls = {up: false, down: false, left: false, right: false, jump: false, canJump: true};
 
 document.addEventListener('keydown', onDesktopInputEvent);
 document.addEventListener('keyup', onDesktopInputEvent);
@@ -78,8 +78,13 @@ renderer.domElement.addEventListener('mousedown', onDesktopInputEvent);
 renderer.domElement.addEventListener('mouseup', onDesktopInputEvent);
 
 function onDesktopInputEvent(ev) {
-  if (ev.type === 'mouseup' || ev.type === 'mousedown') {
-    controls.jump = ev.type === 'mousedown';
+  if (controls.canJump && ev.type === 'mousedown'){
+    controls.jump = true;
+    return;
+  }
+  if (ev.type === 'mouseup') {
+    controls.jump = false;
+    controls.canJump = true;
     return;
   }
   const pressed = ev.type === 'keydown';
@@ -321,6 +326,8 @@ function reset() {
   foxr.speed.set(0, 0);
   foxr.jump = 0;
   foxr.onAir = true;
+  controls.jump = false;
+  controllers.canJump = true;
   foxr.object3D.position.set(0, 1.4, -0.7);
 }
 
@@ -330,8 +337,9 @@ function update(time, dt) {
   if (controls.right){ foxr.speed.x += acceleration * dt; }
   if (controls.up)   { foxr.speed.y -= acceleration * dt; }
   if (controls.down) { foxr.speed.y += acceleration * dt; }
-  if (controls.jump && !foxr.onAir){
+  if (controls.jump && controls.canJump && !foxr.onAir){
     foxr.jump = foxr.JUMP_SPEED;
+    controls.canJump = false;
     foxr.onAir = true;
   }
 
@@ -397,6 +405,12 @@ function update(time, dt) {
       break;
     }
   }
+
+  if (!foxr.onAir) {
+    controls.canJump = true;
+    controls.jump = false;
+  }
+
 
   if (speed > 0.001) {
     const lookAt = foxr.speed.clone();
