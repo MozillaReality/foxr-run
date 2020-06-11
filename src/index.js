@@ -31,8 +31,13 @@ for (let i = 0; i < textureURLs.length; i++) {
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 1.2, 1.1);
-camera.lookAt(0, 1.7, 0);
+camera.position.set(0, 1.6, 0);
+
+var cameraRig = new THREE.Group();
+cameraRig.add(camera);
+cameraRig.position.set(0, 0, 2);
+scene.add(cameraRig);
+
 
 var renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.gammaFactor = 2.2;
@@ -229,7 +234,9 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
     emissiveMap: textures['foxr_diff.png'],
     alphaMap: textures['foxr_opacity.png'],
     transparent: true,
-    skinning: true
+    skinning: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide
   })
 
   headsetMesh.frustumCulled = false;
@@ -240,7 +247,7 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
   foxr.object3D = gltf.scene.getObjectByName('Armature');
   gltf.scene.scale.set(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
   scene.add(gltf.scene);
-  foxr.object3D.position.z = -0.7;
+  foxr.object3D.position.z = -0.5;
 
   // animations
 
@@ -294,8 +301,8 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
   controllerGrip2.addEventListener('connected', (event) => {
     controllers[event.data.handedness] = controllerGrip2;
   });
-  scene.add(controllerGrip1);
-  scene.add(controllerGrip2);
+  cameraRig.add(controllerGrip1);
+  cameraRig.add(controllerGrip2);
 
   clock.start();
   renderer.setAnimationLoop(animate);
@@ -352,7 +359,7 @@ function update(time, dt) {
   foxr.object3D.position.z += foxr.speed.y;
 
 
-  if (foxr.object3D.position.y < 0.8){
+  if (foxr.object3D.position.y < 0){
     reset();
     return;
   }
@@ -395,17 +402,21 @@ function update(time, dt) {
 
   if (foxr.speed.length() < 0.0001) { foxr.speed.set(0, 0); }
 
-  camera.position.set(
-    foxr.object3D.position.x * SCENE_SCALE,
-    foxr.object3D.position.y * SCENE_SCALE * 0.7 + 0.6,
-    foxr.object3D.position.z * SCENE_SCALE + 0.7,
-    );
+  if (!renderer.xr.isPresenting){
+    cameraRig.position.set(
+      foxr.object3D.position.x * SCENE_SCALE,
+      foxr.object3D.position.y * SCENE_SCALE * 0.7 - 1,
+      foxr.object3D.position.z * SCENE_SCALE + 0.6,
+      );
 
-  camera.lookAt(
-    foxr.object3D.position.x * SCENE_SCALE,
-    foxr.object3D.position.y * SCENE_SCALE,
-    foxr.object3D.position.z * SCENE_SCALE
-    );
+    camera.lookAt(
+      foxr.object3D.position.x * SCENE_SCALE,
+      foxr.object3D.position.y * SCENE_SCALE,
+      foxr.object3D.position.z * SCENE_SCALE
+      );
+  } else {
+    cameraRig.position.set(0, 0, 0.7);
+  }
 
 }
 
