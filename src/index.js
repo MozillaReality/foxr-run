@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import {GLTFLoader} from "../node_modules/three/examples/jsm/loaders/GLTFLoader.js";
-import {VRButton} from '../node_modules/three/examples/jsm/webxr/VRButton.js';
+import {VRButton} from './VRButton.js';
 import { XRControllerModelFactory } from '../node_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
 import {Constants as MotionControllerConstants} from '../node_modules/three/examples/jsm/libs/motion-controllers.module.js';
 
@@ -48,7 +48,11 @@ renderer.xr.enabled = true;
 renderer.setClearColor(0x88aacc)
 
 document.body.appendChild(renderer.domElement);
-document.body.appendChild(VRButton.createButton(renderer));
+document.body.appendChild(VRButton.createButton(renderer, status => {
+  if (status === 'sessionStarted') {
+    cameraRig.position.set(0, 0, 0.7);
+  }
+}));
 
 
 // window resize handler
@@ -414,10 +418,7 @@ function update(time, dt) {
       foxr.object3D.position.y * SCENE_SCALE,
       foxr.object3D.position.z * SCENE_SCALE
       );
-  } else {
-    cameraRig.position.set(0, 0, 0.7);
   }
-
 }
 
 // main loop
