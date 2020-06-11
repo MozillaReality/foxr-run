@@ -18,7 +18,7 @@ environmentMap.flipY = false;
 */
 var textures = {};
 const textureURLs = [
-  'foxr_diff.png', 'foxr_emissive.png', 'foxr_opacity.png', 'tiles.jpg'
+  'foxr_diff.jpg', 'foxr_emissive.jpg', 'foxr_opacity.png', 'tiles.jpg'
 ];
 for (let i = 0; i < textureURLs.length; i++) {
   let tex = new THREE.TextureLoader().load(`assets/${textureURLs[i]}`);
@@ -220,8 +220,8 @@ new GLTFLoader().load('assets/set.glb', gltf => {
 new GLTFLoader().load('assets/foxr.glb', gltf => {
   var foxrMesh = gltf.scene.getObjectByName('foxr');
   foxrMesh.material = new THREE.MeshLambertMaterial({
-    map: textures['foxr_diff.png'],
-    emissiveMap: textures['foxr_diff.png'],
+    map: textures['foxr_diff.jpg'],
+    emissiveMap: textures['foxr_diff.jpg'],
     skinning: true
   })
 
@@ -230,8 +230,8 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
 
   var headsetMesh = gltf.scene.getObjectByName('foxr_headset');
   headsetMesh.material = new THREE.MeshLambertMaterial({
-    map: textures['foxr_diff.png'],
-    emissiveMap: textures['foxr_diff.png'],
+    map: textures['foxr_diff.jpg'],
+    emissiveMap: textures['foxr_diff.jpg'],
     alphaMap: textures['foxr_opacity.png'],
     transparent: true,
     skinning: true,
