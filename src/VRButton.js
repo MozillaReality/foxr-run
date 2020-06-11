@@ -1,3 +1,12 @@
+ /*
+
+	This is modification of the original VRButton. I've added a callback to know
+	when the user enters and exists from VR
+
+	Original at:
+	  https://github.com/mrdoob/three.js/blob/dev/examples/jsm/webxr/VRButton.js
+
+ */
 /**
  * @author mrdoob / http://mrdoob.com
  * @author Mugen87 / https://github.com/Mugen87

@@ -1,24 +1,26 @@
-import * as THREE from "three";
-import {GLTFLoader} from "../node_modules/three/examples/jsm/loaders/GLTFLoader.js";
-import {VRButton} from './VRButton.js';
-import { XRControllerModelFactory } from '../node_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
-import {Constants as MotionControllerConstants} from '../node_modules/three/examples/jsm/libs/motion-controllers.module.js';
 
-const SCENE_SCALE = 0.7;
+// import external libraries
+
+// three.js
+import * as THREE from "three";
+
+// GLTFLoader from three.js examples, to be able to load GLTF files
+import {GLTFLoader} from "../node_modules/three/examples/jsm/loaders/GLTFLoader.js";
+
+// our local version of VRButton (a button to enter/exit VR)
+import {VRButton} from './VRButton.js';
+
+// XRControllerModelFactory from three.js examples, to load VR controller models
+import {XRControllerModelFactory} from '../node_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
+
 
 // textures
 
-/*
-const environmentMap = new THREE.TextureLoader().load(
-  "assets/env.jpg"
-);
-environmentMap.mapping = THREE.EquirectangularReflectionMapping;
-environmentMap.encoding = THREE.sRGBEncoding;
-environmentMap.flipY = false;
-*/
+
+
 var textures = {};
 const textureURLs = [
-  'foxr_diff.jpg', 'foxr_emissive.jpg', 'foxr_opacity.png', 'tiles.jpg'
+  'env.jpg', 'foxr_diff.jpg', 'foxr_emissive.jpg', 'foxr_opacity.png', 'tiles.jpg', 'flare.png'
 ];
 for (let i = 0; i < textureURLs.length; i++) {
   let tex = new THREE.TextureLoader().load(`assets/${textureURLs[i]}`);
@@ -35,7 +37,6 @@ camera.position.set(0, 1.6, 0);
 
 var cameraRig = new THREE.Group();
 cameraRig.add(camera);
-cameraRig.position.set(0, 0, 2);
 scene.add(cameraRig);
 
 
@@ -50,7 +51,7 @@ renderer.setClearColor(0x88aacc)
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer, status => {
   if (status === 'sessionStarted') {
-    cameraRig.position.set(0, 0, 0.7);
+    cameraRig.position.set(0, 0, 0.4);
   }
 }));
 
@@ -116,14 +117,36 @@ function onDesktopInputEvent(ev) {
 }
 
 
+var flareMaterial = null;
+var flares = [];
+
+function createFlare(position){
+  const geometry = new THREE.PlaneBufferGeometry(0.4, 0.4);
+  if (!flareMaterial) {
+    flareMaterial =  new THREE.MeshBasicMaterial({
+      map: textures['flare.png'],
+      blending: THREE.AdditiveBlending,
+      depthTest: false
+    });
+  }
+  const flare = new THREE.Mesh(geometry, flareMaterial);
+  flare.up.set(0, 0, -1);
+  flare.position.copy(position)
+  flare.scale.set(0, 0, 0);
+  flares.push(flare);
+  return flare;
+}
+
+
+
 function processControllers() {
   const left = controllers.left.children[0].motionController;
   const right = controllers.right.children[0].motionController;
   if(!left || !right) { return; }
 
   const jump =
-    left.components['xr-standard-trigger'].values.state === MotionControllerConstants.ComponentState.PRESSED ||
-    right.components['xr-standard-trigger'].values.state === MotionControllerConstants.ComponentState.PRESSED;
+    left.components['xr-standard-trigger'].values.state === 'pressed' ||
+    right.components['xr-standard-trigger'].values.state === 'pressed';
 
   const axisXleft = left.components["xr-standard-thumbstick"].values.xAxis;
   const axisYleft = left.components["xr-standard-thumbstick"].values.yAxis;
@@ -163,6 +186,7 @@ light.shadow.mapSize.set(4096, 4096);
 scene.add(light);
 
 var tiles = null;
+var stars = null;
 var arrowHelper = null;
 /* floor
 var geometry = new THREE.PlaneBufferGeometry(4, 4).rotateX(-Math.PI / 2);
@@ -184,7 +208,8 @@ var foxr = {
   onAir: true, // is jumping or falling
   floorPoint: new THREE.Vector3(), // point in his feet, to calculate colision with the floor
   bellyPoint: new THREE.Vector3(), // point in his bellybutton, to calculate colision with the walls
-
+  bb: new THREE.Box3(), // bounding box for colliding with stars
+  BBSIZE: new THREE.Vector3(0.2, 0.25, 0.2),
   // constants
   ACCELERATION: 0.15,
   FRICTION: 0.9,
@@ -216,17 +241,16 @@ foxr.playAnim = (anim) => {
 
 // load and setup scene
 
-new GLTFLoader().load('assets/set.glb', gltf => {
+new GLTFLoader().load('assets/background.glb', gltf => {
   const cloudsMaterial = gltf.scene.getObjectByName("clouds").material;
   cloudsMaterial.transparent = true;
   cloudsMaterial.fog = false;
   const skyMaterial = gltf.scene.getObjectByName("sky").material;
   skyMaterial.fog = false;
-  gltf.scene.scale.set(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
   scene.add(gltf.scene);
 });
 
-new GLTFLoader().load('assets/foxr.glb', gltf => {
+new GLTFLoader().load('assets/scene.glb', gltf => {
   var foxrMesh = gltf.scene.getObjectByName('foxr');
   foxrMesh.material = new THREE.MeshLambertMaterial({
     map: textures['foxr_diff.jpg'],
@@ -250,11 +274,7 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
 
   headsetMesh.frustumCulled = false;
 
-  //foxrMesh.material.map.encoding = THREE.LinearEncoding;
-
-
   foxr.object3D = gltf.scene.getObjectByName('Armature');
-  gltf.scene.scale.set(SCENE_SCALE, SCENE_SCALE, SCENE_SCALE);
   scene.add(gltf.scene);
   foxr.object3D.position.z = -0.5;
 
@@ -290,11 +310,37 @@ new GLTFLoader().load('assets/foxr.glb', gltf => {
   for (var i = 0; i < tiles.length; i++) {
     //tiles[i].castShadow = true;
     tiles[i].receiveShadow = true;
+    // move tiles up to 1m high (around waist)
     tiles[i].position.y += 1;
     // move bb to the position of the tile
     tiles[i].geometry.boundingBox.translate(tiles[i].position);
     tiles[i].material = tileMaterial
   }
+
+  // stars
+
+  const envTexture = textures['env.jpg'];
+  envTexture.mapping = THREE.EquirectangularReflectionMapping;
+  envTexture.encoding = THREE.sRGBEncoding;
+  envTexture.flipY = true;
+  const starMaterial = new THREE.MeshPhongMaterial({
+    color: 0xffaa00,
+    reflectivity: 0.8,
+    emissive: 0xaa7700,
+    envMap: envTexture
+  });
+  stars = gltf.scene.getObjectByName('stars').children;
+  for (var i = 0; i < stars.length; i++) {
+    stars[i].castShadow = true;
+    stars[i].material = starMaterial;
+    // move stars up to 1m high (around waist)
+    stars[i].position.y += 1;
+    stars[i].geometry.boundingBox.translate(stars[i].position);
+    stars[i].userData.flare = createFlare(stars[i].position);
+    stars[i].userData.initialPositionY = stars[i].position.y;
+    scene.add(stars[i].userData.flare);
+  }
+
 
   // controllers
   const controllerModelFactory = new XRControllerModelFactory();
@@ -406,6 +452,16 @@ function update(time, dt) {
     }
   }
 
+  // picking stars
+
+  foxr.bb.setFromCenterAndSize(foxr.object3D.position, foxr.BBSIZE); // update bounding box
+  for (var i = 0; i < stars.length; i++) {
+    if (stars[i].visible && foxr.bb.containsPoint(stars[i].position)){
+      stars[i].userData.flare.scale.addScalar(0.05);
+      stars[i].visible = false;
+    }
+  }
+
   if (!foxr.onAir) {
     controls.canJump = true;
     controls.jump = false;
@@ -422,16 +478,44 @@ function update(time, dt) {
 
   if (!renderer.xr.isPresenting){
     cameraRig.position.set(
-      foxr.object3D.position.x * SCENE_SCALE,
-      foxr.object3D.position.y * SCENE_SCALE * 0.7 - 1,
-      foxr.object3D.position.z * SCENE_SCALE + 0.6,
+      foxr.object3D.position.x,
+      foxr.object3D.position.y * 0.7 - 0.7,
+      foxr.object3D.position.z + 0.9,
       );
 
     camera.lookAt(
-      foxr.object3D.position.x * SCENE_SCALE,
-      foxr.object3D.position.y * SCENE_SCALE,
-      foxr.object3D.position.z * SCENE_SCALE
+      foxr.object3D.position.x,
+      foxr.object3D.position.y,
+      foxr.object3D.position.z
       );
+  }
+}
+
+function animateStars(time, dt){
+  for (var i = 0; i < stars.length; i++) {
+    const star = stars[i];
+    star.rotation.x = time / 945;
+    star.rotation.y = time / 250;
+    star.rotation.z = time / 1205;
+    star.position.y = star.userData.initialPositionY + Math.sin( (time + i * 50) / 200) * 0.03;
+  }
+}
+
+function animateFlares(time, dt){
+  for (var i = 0; i < flares.length; i++) {
+    const flare = flares[i];
+    if (flare.scale.x > 0){
+      const s = flare.scale.x + 3 * dt;//(1 - flare.scale.x) * 5 * dt;
+      flare.scale.set(s, s, s);
+      flare.lookAt(
+        cameraRig.position.x + camera.position.x,
+        cameraRig.position.y + camera.position.y,
+        cameraRig.position.z + camera.position.z
+      );
+      if (flare.scale.x > 1){
+        flare.scale.multiplyScalar(0);
+      }
+    }
   }
 }
 
@@ -446,6 +530,9 @@ function animate(time) {
 
   update(time, dt);
   foxr.mixer.update(dt);
+
+  animateStars(time, dt);
+  animateFlares(time, dt);
 
   renderer.render(scene, camera);
 };
