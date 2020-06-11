@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/REPO_URL"
+    "url": "git+https://github.com/MozillaReality/foxr-run"
   },
   "author": "author",
   "license": "license",
   "bugs": {
-    "url": "https://github.com/REPO_URL/issues"
+    "url": "https://github.com/MozillaReality/foxr-run/issues"
   },
-  "homepage": "https://github.com/REPO_URL#readme",
+  "homepage": "https://github.com/MozillaReality/foxr-run#readme",
   "browserify": {
     "transform": [
       [
