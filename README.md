@@ -1,1 +1,3 @@
-# foxr-test
+# Foxr Run!
+
+A simple scene to control Foxr
