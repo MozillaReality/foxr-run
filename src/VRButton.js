@@ -56,7 +56,8 @@ var VRButton = {
 			button.onmouseenter = function () {
 
 				button.style.opacity = '1.0';
-				button.style.background = 'rgba(255,255,255,0.4)';
+				button.style.background = 'rgba(253,179,25,0.4)';
+				button.style.marginBottom = '5px';
 
 			};
 
@@ -64,6 +65,7 @@ var VRButton = {
 
 				button.style.opacity = '0.8';
 				button.style.background = 'rgba(255,255,255,0.2)';
+				button.style.marginBottom = '0';
 
 			};
 
@@ -118,17 +120,17 @@ var VRButton = {
 
 			element.style.position = 'absolute';
 			element.style.bottom = '20px';
-			element.style.padding = '16px 8px';
-			element.style.border = '1px solid #000';
+			element.style.padding = '15px 10px';
+			element.style.border = '2px solid #000';
 			element.style.borderRadius = '8px';
 			element.style.background = 'rgba(255,255,255,0.2)';
 			element.style.color = '#000';
-			element.style.font = 'normal 16px sans-serif';
+			element.style.font = 'normal 18px sans-serif';
 			element.style.textAlign = 'center';
 			element.style.opacity = '0.8';
 			element.style.outline = 'none';
 			element.style.zIndex = '999';
-
+			element.style.transition = 'margin-bottom 0.2s';
 		}
 
 		if ( 'xr' in navigator ) {
