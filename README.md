@@ -2,7 +2,7 @@
 
 A simple scene to control Foxr, Mozilla Mixed Reality's mascot.
 
-It can be played in your desktop browser and in WebVR, using a VR headset like Oculus Quest.
+It can be played in your desktop browser and in WebVR, using a VR headset like Oculus Quest and [Firefox Reality](https://mixedreality.mozilla.org/firefox-reality) browser.
 
 ![Screenshot](https://raw.githubusercontent.com/MozillaReality/foxr-run/master/assets/screenshot.jpg?token=AACX3QBEIOR2IF5Q42IR7IK65T2DM)
 
