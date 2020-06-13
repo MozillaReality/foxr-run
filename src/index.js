@@ -512,6 +512,7 @@ function updateFoxr(time, dt) {
   // Also, depending on the speed, play walk or run sounds (or none)
   else {
       if (speed > 0.02){
+      foxr.playAnim('run');
       foxr.playSound('run');
     } else if (speed > 0.005){
       foxr.playAnim('run');
@@ -521,6 +522,7 @@ function updateFoxr(time, dt) {
       foxr.playSound(null);
     }
   }
+
 
   // modify run animation playback speed depending on how fast it is moving
   foxr.anims.run.timeScale = Math.max(0.5, speed * 70);
