@@ -150,7 +150,7 @@ function init() {
   new THREE.AudioLoader().load('assets/music.ogg', function(buffer) {
     music.setBuffer(buffer);
     music.setLoop(true);
-    music.setVolume(0.1);
+    music.setVolume(0.04);
     music.play();
   });
 }
@@ -235,7 +235,10 @@ foxr.playSound = function (sound) {
     foxr.sounds[i].pause();
   }
   // play requested sound
-  if (sound) { foxr.sounds[sound].play(); }
+  if (sound) {
+    foxr.sounds[sound].offset = 0;
+    foxr.sounds[sound].play();
+  }
   foxr.currentSound = sound;
 }
 

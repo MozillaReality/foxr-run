@@ -16,3 +16,6 @@ Controls:
 Made using [Three.js](https://threejs.org) and [Blender](https://www.blender.org)
 
 You can peek at how it's made, looking at `src/index.js`, or opening the Blender file in `assets/scene.blend`.
+
+
+Music loop: https://freesound.org/people/xsgianni/sounds/388079/
