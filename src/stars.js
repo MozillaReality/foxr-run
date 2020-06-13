@@ -1,7 +1,7 @@
 // three.js library
 import * as THREE from "three";
 // import these objects from index.js
-import {textures, cameraRig, camera} from './index.js';
+import {textures, cameraRig, camera, audioListener} from './index.js';
 
 var flares = []; // array of flares
 var stars = null; // reference to the parent of all the stars
@@ -34,7 +34,7 @@ export function createFlare(position){
 // a non-zero scale
 
 export function animateFlares(time, dt){
-  for (var i = 0; i < flares.length; i++) {
+  for (let i = 0; i < flares.length; i++) {
     const flare = flares[i];
     // if animation triggered
     if (flare.scale.x > 0){
@@ -76,7 +76,7 @@ export function prepareStars(gltf, scene){
   // save reference to the parent object, to traverse later
   stars = gltf.scene.getObjectByName('stars').children;
 
-  for (var i = 0; i < stars.length; i++) {
+  for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
 
     star.castShadow = true;
@@ -92,16 +92,28 @@ export function prepareStars(gltf, scene){
     star.userData.flare.userData.star = star;
     // save Y position, to animate later
     star.userData.initialPositionY = star.position.y;
+
     // add flare to the scene
     // (the star is added with the whole scene, in index.js)
     scene.add(star.userData.flare);
   }
+
+  // load the star sound and attach it to all stars
+  new THREE.AudioLoader().load('assets/star.ogg', function(audioBuffer) {
+    for (let i = 0; i < stars.length; i++) {
+      const sound = new THREE.PositionalAudio(audioListener);
+      sound.setBuffer(audioBuffer);
+      sound.setRefDistance(0.5); // distance where the sound starts to fade
+      stars[i].add(sound);
+    }
+  });
 }
+
 
 // animate position and rotation of the star
 
 export function animateStars(time, dt){
-  for (var i = 0; i < stars.length; i++) {
+  for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
     if (!star.visible) { continue; }
     star.rotation.x = time / 945;
@@ -116,11 +128,12 @@ export function animateStars(time, dt){
 // check star collision with a bounding box bb (foxr's)
 
 export function checkCollisions(bb) {
-  for (var i = 0; i < stars.length; i++) {
+  for (let i = 0; i < stars.length; i++) {
     if (stars[i].visible && bb.containsPoint(stars[i].position)){
       // if collided, start flare animation
       // (setting the scale to a non-zero value)
       stars[i].userData.flare.scale.addScalar(0.05);
+      stars[i].children[0].play(); // play sound
     }
   }
 }

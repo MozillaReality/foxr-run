@@ -35,7 +35,7 @@ for (let i = 0; i < textureURLs.length; i++) {
 
 // global vars
 
-var scene, camera, cameraRig, renderer;
+var scene, camera, cameraRig, renderer, audioListener;
 var foxr;  // foxr object
 var tiles; // reference to the parent object of all tiles
 
@@ -56,6 +56,10 @@ function init() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 1.6, 0);
+
+  // create an AudioListener and add it to the camera
+  audioListener = new THREE.AudioListener();
+  camera.add(audioListener);
 
   // we add the camera to a group, so we can move it in VR,
   // independently of the headset position
@@ -140,6 +144,15 @@ function init() {
   // load and process gLTF models
   loadBackground();
   loadScene();
+
+  // load background music
+  var music = new THREE.Audio(audioListener);
+  new THREE.AudioLoader().load('assets/music.ogg', function(buffer) {
+    music.setBuffer(buffer);
+    music.setLoop(true);
+    music.setVolume(0.1);
+    music.play();
+  });
 }
 
 init(); // call init ↑
@@ -148,10 +161,12 @@ init(); // call init ↑
 /** INIT FOXR OBJECT **/
 
 foxr = {
-  object3D: null,    // reference to the armature
-  anims: null,       // list of ClipActions
-  mixer: null,       // animation mixer
-  currentAnim: null, // current ClipAction
+  object3D: null,     // reference to the armature
+  anims: null,        // list of ClipActions
+  mixer: null,        // animation mixer
+  currentAnim: null,  // current ClipAction
+  sounds: {},         // sounds set
+  currentSound: null, // current sound
 
   speed: new THREE.Vector2(), // speed vector on floor
   jump: 0,                    // jump speed
@@ -209,6 +224,21 @@ foxr.playAnim = function (anim) {
 
   foxr.currentAnim = foxr.anims[anim];
 };
+
+// function to play a foxr sound
+
+foxr.playSound = function (sound) {
+  // ignore if same sound is currently playing
+  if (foxr.currentSound == sound) { return; }
+  // stop all sounds
+  for (let i in foxr.sounds) {
+    foxr.sounds[i].pause();
+  }
+  // play requested sound
+  if (sound) { foxr.sounds[sound].play(); }
+  foxr.currentSound = sound;
+}
+
 
 // function to reset foxr position and state
 foxr.reset = function () {
@@ -309,6 +339,24 @@ function loadScene() {
     foxr.playAnim('idle');
 
 
+    // load foxr sounds
+    const sounds = ['jump', 'run', 'walk'];
+    const audioLoader = new THREE.AudioLoader();
+    for (let i = 0; i < sounds.length; i++) {
+      const soundName = sounds[i];
+      audioLoader.load('assets/' + soundName + '.ogg', function(audioBuffer) {
+        const sound = new THREE.PositionalAudio(audioListener);
+        sound.setBuffer(audioBuffer);
+        if (soundName != 'jump') {
+          sound.loop = true;
+        }
+        sound.setRefDistance(0.5); // distance where the sound starts to fade
+        foxr.object3D.add(sound);
+        foxr.sounds[soundName] = sound; // save reference to sound
+      });
+    }
+
+
     // floor blocks
 
     // Initially I had all 1x1 block tiles separated in the scene
@@ -321,7 +369,7 @@ function loadScene() {
     });
 
     tiles = gltf.scene.getObjectByName('tiles').children;
-    for (var i = 0; i < tiles.length; i++) {
+    for (let i = 0; i < tiles.length; i++) {
       // apply material
       tiles[i].material = tileMaterial
       // receive shadows
@@ -350,6 +398,7 @@ function loadScene() {
 function processDesktopControls(ev) {
   if (controls.canJump && ev.type === 'mousedown'){
     controls.jump = true;
+    if (!foxr.onAir) { foxr.playSound('jump'); }
     return;
   }
   if (ev.type === 'mouseup') {
@@ -378,6 +427,7 @@ function processDesktopControls(ev) {
     case 32: // space
     case 69: // e
       controls.jump = pressed;
+      if (!foxr.onAir && pressed) { foxr.playSound('jump'); }
       break;
     case 82: // r, reset
       foxr.reset();
@@ -417,6 +467,7 @@ function processVRControls() {
 
   if (controls.canJump && jump) {
     controls.jump = true;
+    foxr.playSound('jump');
   }
 
   // axis go from -1 to 1
@@ -454,11 +505,18 @@ function updateFoxr(time, dt) {
   if (foxr.onAir){
     if (Math.abs(foxr.jump) > 0.01) foxr.playAnim('jump');
   }
-  // if not on air, and moving more than a threshold, play animation 'run'
-  else if (speed > 0.005){
-    foxr.playAnim('run');
-  } else {
-    foxr.playAnim('idle');
+  // If not on air, and moving more than a threshold, play animation 'run'
+  // Also, depending on the speed, play walk or run sounds (or none)
+  else {
+      if (speed > 0.02){
+      foxr.playSound('run');
+    } else if (speed > 0.005){
+      foxr.playAnim('run');
+      foxr.playSound('walk');
+    } else {
+      foxr.playAnim('idle');
+      foxr.playSound(null);
+    }
   }
 
   // modify run animation playback speed depending on how fast it is moving
@@ -512,7 +570,7 @@ function updateFoxr(time, dt) {
 
   // for each ground block, check if bellyPoint or floorPoint
   // are inside its bounding box
-  for (var i = 0; i < tiles.length; i++) {
+  for (let i = 0; i < tiles.length; i++) {
     const bb = tiles[i].geometry.boundingBox;
 
     // detected collision with wall, move backwards and stop
@@ -593,4 +651,4 @@ function animate(time) {
 
 // export these to stars.js
 
-export {textures, cameraRig, camera};
+export {textures, cameraRig, camera, audioListener};
