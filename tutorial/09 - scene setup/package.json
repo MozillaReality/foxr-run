@@ -1,0 +1,56 @@
+{
+  "name": "Name",
+  "version": "1.0.0",
+  "description": "Description",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server --host 0.0.0.0 --mode development --https -d",
+    "http": "webpack-dev-server --host 0.0.0.0 --mode development -d",
+    "build": "webpack --mode production",
+    "lint": "eslint src",
+    "brow": "browserify src/index.js bundle.browserify.js",
+    "deploy": "gh-pages -d dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MozillaReality/foxr-run"
+  },
+  "author": "author",
+  "license": "license",
+  "bugs": {
+    "url": "https://github.com/MozillaReality/foxr-run/issues"
+  },
+  "homepage": "https://github.com/MozillaReality/foxr-run#readme",
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "presets": [
+            "es2015"
+          ]
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "three": "^0.116.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "babel-eslint": "^10.0.3",
+    "babel-loader": "^8.0.6",
+    "babel-preset-es2015": "^6.24.1",
+    "babelify": "^10.0.0",
+    "browserify": "^16.5.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.3.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "prettier": "^1.19.1",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0",
+    "webpack-node-externals": "^1.7.2"
+  }
+}
