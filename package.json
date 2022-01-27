@@ -34,7 +34,7 @@
     ]
   },
   "dependencies": {
-    "three": "^0.116.1"
+    "three": "^0.137.0"
   },
   "devDependencies": {
     "@babel/core": "^7.7.4",
